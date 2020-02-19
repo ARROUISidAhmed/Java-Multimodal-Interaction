@@ -8,9 +8,10 @@ package ivy;
 import fr.dgac.ivy.Ivy;
 import fr.dgac.ivy.IvyClient;
 import fr.dgac.ivy.IvyException;
-import fr.dgac.ivy.IvyMessageListener;
-import java.awt.Color;
 import java.awt.geom.Point2D;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,7 +38,6 @@ public class IvyMessages extends javax.swing.JFrame {
         Init,
         Point,
         Draw,
-
     };
 
     enum Function {
@@ -173,14 +173,14 @@ public class IvyMessages extends javax.swing.JFrame {
                                     for (Map.Entry<String, ArrayList<Point2D.Double>> entry : historique.entrySet()) {
                                         double d2 = compareTwoPatterns(entry.getValue(), stroke.getPoints());
                                         if (d2 < distance) {
-                                            distance=d2;
+                                            distance = d2;
                                             name = entry.getKey();
-                                            listeTrouvee=entry.getValue();
+                                            listeTrouvee = entry.getValue();
                                         }
 
                                     }
                                     drawPoints.setListePoint(listeTrouvee);
-                                    
+
                                     break;
                             }
 
@@ -332,6 +332,7 @@ public class IvyMessages extends javax.swing.JFrame {
         }
         return true;
     }
+
     private void inputButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_inputButton1ActionPerformed
         switch (f) {
             case Learning:
@@ -341,7 +342,8 @@ public class IvyMessages extends javax.swing.JFrame {
                     historique.put(text, drawPoints.getListePoint());
                     JOptionPane.showMessageDialog(this, "\"Votre schéma a été sauvegardé avec succès\"");
                     inputBox1.setText("");
-                    drawPoints.setListePoint(new ArrayList<>());               }
+                    drawPoints.setListePoint(new ArrayList<>());
+                }
 
                 break;
             case Finding:
@@ -367,13 +369,17 @@ public class IvyMessages extends javax.swing.JFrame {
                 }
             }
         } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(IvyMessages.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(IvyMessages.class
+                    .getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(IvyMessages.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(IvyMessages.class
+                    .getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(IvyMessages.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(IvyMessages.class
+                    .getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(IvyMessages.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(IvyMessages.class
+                    .getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
 
