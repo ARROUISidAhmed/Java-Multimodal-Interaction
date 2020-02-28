@@ -5,7 +5,6 @@
  */
 package ivy;
 
-import com.sun.org.apache.xml.internal.security.Init;
 import fr.dgac.ivy.Ivy;
 import fr.dgac.ivy.IvyClient;
 import fr.dgac.ivy.IvyException;
@@ -279,7 +278,8 @@ public class Multimodal extends javax.swing.JFrame {
     }
 
     private void handleGesture(String name) {
-        switch (applicationState) {
+        System.out.println("geste name"+name);
+          switch (applicationState) {
             case Init:
                 switch (name) {
                     case "supprimer":
@@ -288,7 +288,7 @@ public class Multimodal extends javax.swing.JFrame {
                          */
                         applicationState = ApplicationState.Supprimer;
                         break;
-                    case "move":
+                    case "deplacer":
                         /**
                          * Go to move state
                          */
@@ -341,15 +341,17 @@ public class Multimodal extends javax.swing.JFrame {
     private enum ApplicationState {
         Init,
         Créer,
-        Déplacer,
-        Supprimer,
         PositionCréer,
         ClickCréer,
         CouleurCréer,
         InfoCréer,
+        Supprimer,
         CouleurSupp,
         ClickSupp,
-        FormeSupp,
+        ObjetSupp,
+        InfoSupp,
+        Déplacer,
+
 
     }
 
@@ -452,7 +454,7 @@ public class Multimodal extends javax.swing.JFrame {
         });
         stroke = new Stroke();
 
-        try (FileInputStream fis = new FileInputStream("geste.ser"); ObjectInputStream ois = new ObjectInputStream(fis)) {
+        try (FileInputStream fis = new FileInputStream("geste"); ObjectInputStream ois = new ObjectInputStream(fis)) {
 
             gestures = (HashMap< String, ArrayList<Point2D.Double>>) ois.readObject();
 

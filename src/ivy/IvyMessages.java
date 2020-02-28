@@ -56,6 +56,7 @@ public class IvyMessages extends javax.swing.JFrame {
         f = Function.Learning;
         learning.setSelected(true);
         historique = new HashMap<>();
+
     }
 
     private double distanceTwoPoints(Point2D.Double p1, Point2D.Double p2) {
@@ -343,6 +344,16 @@ public class IvyMessages extends javax.swing.JFrame {
                     JOptionPane.showMessageDialog(this, "\"Votre schéma a été sauvegardé avec succès\"");
                     inputBox1.setText("");
                     drawPoints.setListePoint(new ArrayList<>());
+                    try {
+                        FileOutputStream fos = new FileOutputStream("geste");
+                        ObjectOutputStream oos = new ObjectOutputStream(fos);
+
+                        oos.writeObject(historique);
+                        oos.flush();
+                        oos.close();
+                        fos.close();
+                    } catch (Exception e) {
+                    }
                 }
 
                 break;
