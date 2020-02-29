@@ -5,11 +5,8 @@
  */
 package ivy;
 
-import java.awt.List;
-import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Objects;
-import org.graalvm.compiler.nodes.calc.IsNullNode;
 
 /**
  *
@@ -19,12 +16,9 @@ public class DeleteCommand implements Command {
 
     private ArrayList<String> shapes;
 
-    public DeleteCommand(ArrayList<String> shapes) {
-        this.shapes = shapes;
-    }
 
     public DeleteCommand() {
-
+       
     }
 
     public ArrayList<String> getShapes() {
@@ -35,9 +29,6 @@ public class DeleteCommand implements Command {
         this.shapes = shapes;
     }
 
-    public void addShape(String shape) {
-        this.shapes.add(shape);  
-    }
 
     @Override
     public boolean isWellFormated() {

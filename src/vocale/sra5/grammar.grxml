@@ -10,61 +10,62 @@
                               grammar.xsd"
           xml:lang="fr-FR" root="answer" tag-format="semantics/1.0">
           
-   <rule id="answer" scope="public"> 
-    <ruleref special="GARBAGE" /> 
-    <one-of>
-      <item><ruleref uri="#deplacement"/></item>
-      <item><ruleref uri="#supprimer"/></item>
-      <item><ruleref uri="#position"/></item>
-      <item><ruleref uri="#couleur"/></item>
-    </one-of>          
-    <tag>out = rules.latest().text;</tag>
-    <ruleref special="GARBAGE" />
-  </rule>
+    <rule id="answer" scope="public"> 
+        <ruleref special="GARBAGE" /> 
+        <one-of>
+            <item>
+                <ruleref uri="#deplacement"/>
+            </item>
+            <item>
+                <ruleref uri="#objet"/>
+            </item>
+            <item>
+                <ruleref uri="#position"/>
+            </item>
+            <item>
+                <ruleref uri="#couleur"/>
+            </item>
+        </one-of>          
+        <tag>out = rules.latest().text;</tag>
+        <ruleref special="GARBAGE" />
+    </rule>
        
-   <rule id="deplacement">
-    <item>deplacer <ruleref uri="#position"/></item>
-  </rule> 
+    <rule id="deplacement">
+        <item>deplacer <ruleref uri="#position"/></item>
+    </rule> 
   
   
-  <rule id="position">
-    <one-of>
-      <item>ici</item>
-      <item>la</item>
-      <item>au centre</item>
-      <item>à droite</item>
-      <item>à gauche</item>
-      <item>à cette position</item>
-    </one-of>      
-    <tag>out.text  = "Position:" + meta.current().text;</tag>
-  </rule>
-
-  <rule id="couleur">
-    <one-of>
-      <item>noir</item>
-      <item>bleu</item>
-      <item>jaune</item>
-      <item>violet</item>
-      <item>cyan</item>
-      <item>vert</item>
-      <item>rouge</item>
-      <item>de cette couleur</item>
-    </one-of>
-    <tag>out.text  = "Couleur:" + meta.current().text;</tag>
-  </rule>
-
-    <rule id="supprimer">
-    <one-of>
-      <item>supprimer<ruleref uri="#objet"/></item> 
-    </one-of>
-    <tag> out.text = "Objet:" + meta.current().text;</tag>
+    <rule id="position">
+        <one-of>
+            <item>ici</item>
+            <item>la</item>       
+            <item>a cette position</item>
+        </one-of>      
+        <tag>out.text  = "Position:" + meta.current().text;</tag>
     </rule>
 
+    <rule id="couleur">
+        <one-of>
+            <item>noir</item>
+            <item>bleu</item>
+            <item>jaune</item>
+            <item>violet</item>
+            <item>cyan</item>
+            <item>vert</item>
+            <item>rouge</item>
+            <item>de cette couleur</item>
+        </one-of>
+        <tag>out.text  = "Couleur:" + meta.current().text;</tag>
+    </rule>
+
+
     <rule id="objet">
-    <one-of>
-      <item>un rectangle</item>
-      <item>une ellipse</item>
-    </one-of>      
-  </rule>
+        <one-of>
+            <item>ces rectangles</item>
+            <item>ces ellipses</item>
+            <item>ces objets</item>
+        </one-of>
+        <tag>out.text  = "Objet:" + meta.current().text;</tag>
+    </rule>
   
 </grammar>

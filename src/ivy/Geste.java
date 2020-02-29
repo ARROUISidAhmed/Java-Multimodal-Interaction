@@ -9,8 +9,11 @@ import fr.dgac.ivy.Ivy;
 import fr.dgac.ivy.IvyClient;
 import fr.dgac.ivy.IvyException;
 import java.awt.geom.Point2D;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,118 +26,119 @@ import javax.swing.JOptionPane;
  *
  * @author arrouisa
  */
-public class IvyMessages extends javax.swing.JFrame {
+public class Geste extends javax.swing.JFrame {
 
     /**
      * Creates new form IvyMessages
      */
-    public IvyMessages() {
+    public Geste() {
         initComponents();
-        initStates();
+        try {
+            initStates();
+        } catch (IOException ex) {
+            Logger.getLogger(Geste.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (ClassNotFoundException ex) {
+            Logger.getLogger(Geste.class.getName()).log(Level.SEVERE, null, ex);
+        }
         initOthers();
     }
-
+    
     enum State {
         Init,
         Point,
         Draw,
     };
-
+    
     enum Function {
         Learning,
         Finding,
     };
-
+    
     private Stroke stroke;
     private Ivy bus;
     private State s;
     private Function f;
     private HashMap<String, ArrayList<Point2D.Double>> historique;
-
-    private void initStates() {
+    
+    private void initStates() throws FileNotFoundException, IOException, ClassNotFoundException {
         s = State.Init;
         f = Function.Learning;
         learning.setSelected(true);
         historique = new HashMap<>();
-
+        
+        FileInputStream fis = new FileInputStream("geste");
+        ObjectInputStream ois = new ObjectInputStream(fis);
+        
+        historique = (HashMap< String, ArrayList<Point2D.Double>>) ois.readObject();
+        
     }
-
+    
     private double distanceTwoPoints(Point2D.Double p1, Point2D.Double p2) {
         return Math.sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
     }
-
+    
     private double compareTwoPatterns(ArrayList<Point2D.Double> liste1, ArrayList<Point2D.Double> liste2) {
         double distance = 0;
         for (int i = 0; i < liste1.size(); i++) {
             distance += distanceTwoPoints(liste1.get(i), liste2.get(i));
-
+            
         }
-
+        
         return distance / liste1.size();
     }
-
+    
     private void initOthers() {
         bus = new Ivy("Ivy_Sender", null, null);
-
+        
         try {
             bus.start("127.255.255.255:2010");
         } catch (IvyException ex) {
-            Logger.getLogger(IvyMessages.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Geste.class.getName()).log(Level.SEVERE, null, ex);
         }
-
+        
         try {
             bus.bindMsg("Palette:MousePressed x=(.*) y=(.*)", (IvyClient ic, String[] strings) -> {
                 int x1 = Integer.parseInt(strings[0]);
                 int y1 = Integer.parseInt(strings[1]);
-                try {
-                    switch (s) {
-                        case Init:
-                            stroke = new Stroke();
-                            s = State.Point;
-                            bus.sendMsg("Palette:CreerEllipse x=" + x1 + " y=" + y1 + " longueur=4 hauteur=4 couleurFond=red couleurContour=red");
-                            stroke.addPoint(x1, y1);
-                            break;
-                        case Point:
-                            // "impossible"
-                            break;
-                        case Draw:
-                            //impossible
-                            break;
-                    }
-
-                } catch (IvyException ex) {
-                    Logger.getLogger(IvyMessages.class.getName()).log(Level.SEVERE, null, ex);
+                switch (s) {
+                    case Init:
+                        stroke = new Stroke();
+                        s = State.Point;
+                        stroke.addPoint(x1, y1);
+                        break;
+                    case Point:
+                        // "impossible"
+                        break;
+                    case Draw:
+                        //impossible
+                        break;
                 }
+                
             });
         } catch (IvyException ex) {
-            Logger.getLogger(IvyMessages.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Geste.class.getName()).log(Level.SEVERE, null, ex);
         }
         try {
             bus.bindMsg("Palette:MouseDragged x=(.*) y=(.*)", (IvyClient ic, String[] strings) -> {
                 int x1 = Integer.parseInt(strings[0]);
                 int y1 = Integer.parseInt(strings[1]);
-                try {
-                    switch (s) {
-                        case Init:
-                            //impossible
-                            break;
-                        case Point:
-                            s = State.Draw;
-                            bus.sendMsg("Palette:CreerEllipse x=" + x1 + " y=" + y1 + " longueur=4 hauteur=4 couleurFond=grey couleurContour=grey");
-                            stroke.addPoint(x1, y1);
-                            break;
-                        case Draw:
-                            s = State.Draw;
-                            bus.sendMsg("Palette:CreerEllipse x=" + x1 + " y=" + y1 + " longueur=4 hauteur=4 couleurFond=grey couleurContour=grey");
-                            stroke.addPoint(x1, y1);
-                            break;
-                    }
-                } catch (IvyException ex) {
-                    Logger.getLogger(IvyMessages.class.getName()).log(Level.SEVERE, null, ex);
+                switch (s) {
+                    case Init:
+                        //impossible
+                        break;
+                    case Point:
+                        s = State.Draw;
+                        stroke.addPoint(x1, y1);
+                        break;
+                    case Draw:
+                        s = State.Draw;
+                        stroke.addPoint(x1, y1);
+                        break;
                 }
+                
             });
         } catch (IvyException ex) {
-            Logger.getLogger(IvyMessages.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Geste.class.getName()).log(Level.SEVERE, null, ex);
         }
         try {
             bus.bindMsg("Palette:MouseReleased x=(.*) y=(.*)", (IvyClient ic, String[] strings) -> {
@@ -147,22 +151,21 @@ public class IvyMessages extends javax.swing.JFrame {
                             break;
                         case Point:
                             s = State.Init;
-                            bus.sendMsg("Palette:CreerEllipse x=" + x1 + " y=" + y1 + " longueur=4 hauteur=4 couleurFond=green couleurContour=green");
                             stroke.addPoint(x1, y1);
                             break;
                         case Draw:
                             s = State.Init;
-                            bus.sendMsg("Palette:CreerEllipse x=" + x1 + " y=" + y1 + " longueur=4 hauteur=4 couleurFond=green couleurContour=green");
                             stroke.addPoint(x1, y1);
                             stroke.normalize();
+                            /*
                             stroke.getPoints().forEach((point) -> {
                                 try {
                                     bus.sendMsg("Palette:CreerEllipse x=" + (int) point.x + " y=" + (int) point.y + " longueur=4 hauteur=4 couleurFond=blue couleurContour=blue");
 
                                 } catch (IvyException ex) {
-                                    Logger.getLogger(IvyMessages.class.getName()).log(Level.SEVERE, null, ex);
+                                    Logger.getLogger(Geste.class.getName()).log(Level.SEVERE, null, ex);
                                 }
-                            });
+                            });*/
                             switch (f) {
                                 case Learning:
                                     drawPoints.setListePoint(stroke.getPoints());
@@ -178,22 +181,23 @@ public class IvyMessages extends javax.swing.JFrame {
                                             name = entry.getKey();
                                             listeTrouvee = entry.getValue();
                                         }
-
+                                        
                                     }
                                     drawPoints.setListePoint(listeTrouvee);
-
+                                    gesteReconnu.setText("Geste reconnu : " + name);
+                                    bus.sendMsg("Geste:" + name);
                                     break;
                             }
-
+                            
                             stroke.getPoints().clear();
                             break;
                     }
                 } catch (IvyException ex) {
-                    Logger.getLogger(IvyMessages.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(Geste.class.getName()).log(Level.SEVERE, null, ex);
                 }
             });
         } catch (IvyException ex) {
-            Logger.getLogger(IvyMessages.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Geste.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -210,6 +214,7 @@ public class IvyMessages extends javax.swing.JFrame {
         learning = new javax.swing.JRadioButton();
         finding = new javax.swing.JRadioButton();
         drawArea = new javax.swing.JPanel();
+        gesteReconnu = new javax.swing.JLabel();
         drawPoints = new ivy.DrawArea();
         inputButton1 = new javax.swing.JButton();
         inputBox1 = new javax.swing.JTextField();
@@ -236,6 +241,7 @@ public class IvyMessages extends javax.swing.JFrame {
 
         drawArea.setMaximumSize(new java.awt.Dimension(2147483647, 2147483647));
         drawArea.setLayout(new java.awt.BorderLayout());
+        drawArea.add(gesteReconnu, java.awt.BorderLayout.PAGE_START);
 
         javax.swing.GroupLayout drawPointsLayout = new javax.swing.GroupLayout(drawPoints);
         drawPoints.setLayout(drawPointsLayout);
@@ -347,7 +353,7 @@ public class IvyMessages extends javax.swing.JFrame {
                     try {
                         FileOutputStream fos = new FileOutputStream("geste");
                         ObjectOutputStream oos = new ObjectOutputStream(fos);
-
+                        
                         oos.writeObject(historique);
                         oos.flush();
                         oos.close();
@@ -355,7 +361,7 @@ public class IvyMessages extends javax.swing.JFrame {
                     } catch (Exception e) {
                     }
                 }
-
+                
                 break;
             case Finding:
                 //impossible
@@ -380,26 +386,27 @@ public class IvyMessages extends javax.swing.JFrame {
                 }
             }
         } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(IvyMessages.class
+            java.util.logging.Logger.getLogger(Geste.class
                     .getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(IvyMessages.class
+            java.util.logging.Logger.getLogger(Geste.class
                     .getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(IvyMessages.class
+            java.util.logging.Logger.getLogger(Geste.class
                     .getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(IvyMessages.class
+            java.util.logging.Logger.getLogger(Geste.class
                     .getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
+        //</editor-fold>
         //</editor-fold>
 
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new IvyMessages().setVisible(true);
+                new Geste().setVisible(true);
             }
-
+            
         });
     }
 
@@ -408,6 +415,7 @@ public class IvyMessages extends javax.swing.JFrame {
     private javax.swing.JPanel drawArea;
     private ivy.DrawArea drawPoints;
     private javax.swing.JRadioButton finding;
+    private javax.swing.JLabel gesteReconnu;
     private javax.swing.JTextField inputBox1;
     private javax.swing.JButton inputButton1;
     private javax.swing.JLabel jLabel2;

@@ -11,17 +11,13 @@ import fr.dgac.ivy.IvyException;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.geom.Point2D;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.Timer;
@@ -32,78 +28,7 @@ import javax.swing.Timer;
  */
 public class Multimodal extends javax.swing.JFrame {
 
-    private void handleMouseDown(int x, int y) {
-        switch (applicationState) {
-            case Init:
-                switch (gestureState) {
-                    case Init:
-                        stroke = new Stroke();
-                        gestureState = GestureState.Point;
-                        stroke.addPoint(x, y);
-                        break;
-                    case Point:
-                        // "impossible"
-                        break;
-                    case Draw:
-                        //impossible
-                        break;
-                }
-                break;
-        }
-    }
-
-    private void handleMouseUp(int x, int y) {
-        switch (applicationState) {
-            case Init:
-                switch (gestureState) {
-                    case Init:
-                        /**
-                         * Impossible
-                         */
-                        break;
-                    case Point:
-                        gestureState = GestureState.Init;
-                        stroke.getPoints().clear();
-                        break;
-                    case Draw:
-                        gestureState = GestureState.Init;
-                        stroke.addPoint(x, y);
-                        stroke.normalize();
-                        double distance = Double.MAX_VALUE;
-                        String name = "";
-                        for (Map.Entry<String, ArrayList<Point2D.Double>> entry : gestures.entrySet()) {
-                            double d2 = compareTwoPatterns(entry.getValue(), stroke.getPoints());
-                            if (d2 < distance) {
-                                distance = d2;
-                                name = entry.getKey();
-                            }
-                        }
-                        handleGesture(name);
-                        break;
-                }
-                break;
-        }
-
-    }
-
-    private void handleMouseDragged(int x, int y) {
-        switch (applicationState) {
-            case Init:
-                switch (gestureState) {
-                    case Init:
-                        /**
-                         * Impossible
-                         */
-                        break;
-                    case Point:
-                    case Draw:
-                        gestureState = GestureState.Draw;
-                        stroke.addPoint(x, y);
-                        break;
-                }
-                break;
-        }
-    }
+    private int receivedResponse;
 
     private void handleMouseClicked(int x, int y) {
         switch (applicationState) {
@@ -140,6 +65,58 @@ public class Multimodal extends javax.swing.JFrame {
                 }
                 timer.restart();
                 break;
+            case Supprimer:
+                applicationState = ApplicationState.ClickSupp;
+                clickedPoint = new Point(x, y);
+                timer.restart();
+                break;
+            case ObjetSupp:
+                applicationState = ApplicationState.InfoSupp;
+                clickedPoint = new Point(x, y);
+                shapesByColor.clear();
+                 {
+                    try {
+                        askInfo(x, y);
+                    } catch (IvyException ex) {
+                        Logger.getLogger(Multimodal.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+                timer.restart();
+                break;
+            case Déplacer:
+                applicationState = ApplicationState.ClickDéplacer;
+                clickedPoint = new Point(x, y);
+                timer.restart();
+                break;
+            case ObjetDéplacer:
+                applicationState = ApplicationState.InfoDéplacer;
+                clickedPoint = new Point(x, y);
+                shapesByColor.clear();
+                 {
+                    try {
+                        askInfo(x, y);
+                    } catch (IvyException ex) {
+                        Logger.getLogger(Multimodal.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+                timer.restart();
+                break;
+            case PositionDéplacer:
+                applicationState = ApplicationState.Déplacer;
+                clickedPoint = new Point(x, y);
+                ((MoveCommand) command).setPosition(clickedPoint);
+                timer.restart();
+                break;
+            case CouleurDéplacer:
+                applicationState = ApplicationState.ClickDéplacer;
+                clickedPoint = new Point(x, y);
+                timer.restart();
+                break;
+            case CouleurSupp:
+                applicationState = ApplicationState.ClickSupp;
+                clickedPoint = new Point(x, y);
+                timer.restart();
+                break;
 
         }
     }
@@ -156,31 +133,35 @@ public class Multimodal extends javax.swing.JFrame {
                 /**
                  * TODO Change position
                  */
-                if (position.equals("à droite")) {
-                    applicationState = ApplicationState.Créer;
-                    ((CreateCommand) command).setPosition(new Point(200, 200));
-                }
-                if (position.equals("à gauche")) {
-                    applicationState = ApplicationState.Créer;
-                    ((CreateCommand) command).setPosition(new Point(0, 200));
-                }
-                if (position.equals("ici") || position.equals("la")) {
-                    applicationState = ApplicationState.PositionCréer;
-                }
+
+                applicationState = ApplicationState.PositionCréer;
                 timer.restart();
                 break;
             case ClickCréer:
-                if (position.equals("ici") || position.equals("la")) {
-                    applicationState = ApplicationState.Créer;
-                    ((CreateCommand) command).setPosition(clickedPoint);
-                    timer.restart();
-                }
+                applicationState = ApplicationState.Créer;
+                ((CreateCommand) command).setPosition(clickedPoint);
+                timer.restart();
                 break;
-            case CouleurCréer:
+            case Déplacer:
+                applicationState = ApplicationState.PositionDéplacer;
+                timer.restart();
+                break;
+            case ClickDéplacer:
+                applicationState = ApplicationState.Déplacer;
+                ((MoveCommand) command).setPosition(clickedPoint);
+                timer.restart();
+                break;
+            case CouleurDéplacer:
+                applicationState = ApplicationState.PositionDéplacer;
+                timer.restart();
+                break;   
+            default:
+
                 /**
                  * Do nothing
                  */
                 break;
+
         }
     }
 
@@ -203,24 +184,38 @@ public class Multimodal extends javax.swing.JFrame {
             case ClickCréer:
                 if (couleur.equals("de cette couleur")) {
                     applicationState = ApplicationState.InfoCréer;
-                    try {
+                    try {;
                         askInfo(clickedPoint.x, clickedPoint.y);
                     } catch (IvyException ex) {
                         Logger.getLogger(Multimodal.class.getName()).log(Level.SEVERE, null, ex);
                     }
-                    timer.restart();
                 }
+                timer.restart();
                 break;
             case CouleurCréer:
                 /**
                  * Ne rien faire
                  */
                 break;
+            case CouleurSupp:
+                if (!couleur.equals("de cette couleur")) {
+                    applicationState = ApplicationState.Supprimer;
+                    ((DeleteCommand) command).setShapes(shapesByColor.get(mapColor(couleur)));
+                    timer.restart();
+                }
+                break;
             case InfoCréer:
                 applicationState = ApplicationState.Créer;
 
                 ((CreateCommand) command).setColor(couleur);
                 timer.restart();
+                break;
+            case CouleurDéplacer:
+                if (!couleur.equals("de cette couleur")) {
+                    applicationState = ApplicationState.Déplacer;
+                    ((MoveCommand) command).setShapes(shapesByColor.get(mapColor(couleur)));
+                    timer.restart();
+                }
                 break;
         }
     }
@@ -254,12 +249,67 @@ public class Multimodal extends javax.swing.JFrame {
                 }
                 timer.stop();
                 break;
+            case Supprimer:
+                applicationState = ApplicationState.Init;
+
+                if (command.isWellFormated()) {
+                    DeleteCommand dc = ((DeleteCommand) command);
+
+                    dc.getShapes().forEach((shape) -> {
+                        try {
+                            bus.sendMsg("Palette:SupprimerObjet nom=" + shape);
+                        } catch (IvyException ex) {
+                            Logger.getLogger(Multimodal.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    });
+                }
+
+                timer.stop();
+                break;
             case ClickCréer:
             case CouleurCréer:
             case InfoCréer:
                 applicationState = ApplicationState.Créer;
                 timer.restart();
                 break;
+            case ClickSupp:
+            case InfoSupp:
+            case CouleurSupp:
+           
+                applicationState = ApplicationState.Supprimer;
+                ArrayList<String> allShapes = new ArrayList<>();
+                shapesByColor.values().forEach((list) -> allShapes.addAll(list));
+                ((DeleteCommand) command).setShapes(allShapes);
+                timer.restart();
+                break;
+            case Déplacer:
+                applicationState = ApplicationState.Init;
+                if (command.isWellFormated()) {
+                    MoveCommand mc = ((MoveCommand) command);
+
+                    mc.getShapes().forEach((shape) -> {
+                        try {
+                            bus.sendMsg("Palette:DeplacerObjetAbsolu nom=" + shape + " x=" + mc.getPosition().x + " y=" + mc.getPosition().y);
+                        } catch (IvyException ex) {
+                            Logger.getLogger(Multimodal.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    });
+                }
+
+                timer.stop();
+                break;
+            case ClickDéplacer:
+            case InfoDéplacer:
+            case CouleurDéplacer:
+            case PositionDéplacer:
+                applicationState = ApplicationState.Déplacer;
+                ArrayList<String> allShapesToMove = new ArrayList<>();
+                shapesByColor.values().forEach((list) -> allShapesToMove.addAll(list));
+                System.out.println("shapes " + allShapesToMove);
+                ((MoveCommand) command).setShapes(allShapesToMove);
+                timer.restart();
+                break;
+
         }
     }
 
@@ -278,21 +328,27 @@ public class Multimodal extends javax.swing.JFrame {
     }
 
     private void handleGesture(String name) {
-        System.out.println("geste name"+name);
-          switch (applicationState) {
+
+        switch (applicationState) {
             case Init:
+                objectType = "O";
                 switch (name) {
                     case "supprimer":
                         /**
                          * Go to suppression state
                          */
                         applicationState = ApplicationState.Supprimer;
+                        command = new DeleteCommand();
+
+                        timer.start();
                         break;
                     case "deplacer":
                         /**
                          * Go to move state
                          */
+                        command = new MoveCommand();
                         applicationState = ApplicationState.Déplacer;
+                        timer.start();
                         break;
                     case "rectangle":
                     case "cercle":
@@ -315,10 +371,10 @@ public class Multimodal extends javax.swing.JFrame {
     }
 
     private ApplicationState applicationState;
-    private GestureState gestureState;
 
     private Command command;
     private Point clickedPoint;
+    private String objectType;
 
     private void askInfo(int x, int y) throws IvyException {
         bus.sendMsg("Palette:TesterPoint x=" + x + " y=" + y);
@@ -338,6 +394,67 @@ public class Multimodal extends javax.swing.JFrame {
         }
     }
 
+    private void handleObject(String keyValue) {
+
+        switch (applicationState) {
+            case Supprimer:
+                applicationState = ApplicationState.ObjetSupp;
+                setObjectType(keyValue);
+                timer.restart();
+                break;
+            case ClickSupp:
+                applicationState = ApplicationState.InfoSupp;
+                shapesByColor.clear();
+                setObjectType(keyValue);
+
+                 {
+                    try {
+                        askInfo(clickedPoint.x, clickedPoint.y);
+                    } catch (IvyException ex) {
+                        Logger.getLogger(Multimodal.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+
+                timer.restart();
+                break;
+            case Déplacer:
+                applicationState = ApplicationState.ObjetDéplacer;
+                setObjectType(keyValue);
+                timer.restart();
+                break;
+            case ClickDéplacer:
+                applicationState = ApplicationState.InfoDéplacer;
+                shapesByColor.clear();
+                setObjectType(keyValue);
+
+                 {
+                    try {
+                        askInfo(clickedPoint.x, clickedPoint.y);
+                    } catch (IvyException ex) {
+                        Logger.getLogger(Multimodal.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+
+                timer.restart();
+                break;
+        }
+    }
+
+    private void setObjectType(String keyValue) {
+        switch (keyValue) {
+            case "ces ellipses":
+                objectType = "E";
+                break;
+            case "ces rectangles":
+                objectType = "R";
+                break;
+            case "ces objets":
+                objectType = "O";
+                break;
+
+        }
+    }
+
     private enum ApplicationState {
         Init,
         Créer,
@@ -351,8 +468,11 @@ public class Multimodal extends javax.swing.JFrame {
         ObjetSupp,
         InfoSupp,
         Déplacer,
-
-
+        ClickDéplacer,
+        ObjetDéplacer,
+        CouleurDéplacer,
+        InfoDéplacer,
+        PositionDéplacer,
     }
 
     private enum GestureState {
@@ -365,7 +485,8 @@ public class Multimodal extends javax.swing.JFrame {
 
     private Timer timer;
     private Stroke stroke;
-    private HashMap<String, ArrayList<Point2D.Double>> gestures;
+    private HashMap<String, ArrayList<String>> shapesByColor;
+    private List<String> shapes;
 
     /**
      * Creates new form Multimodal
@@ -445,7 +566,6 @@ public class Multimodal extends javax.swing.JFrame {
          *
          */
         applicationState = ApplicationState.Init;
-        gestureState = GestureState.Init;
         /**
          * Initialize properties
          */
@@ -453,12 +573,9 @@ public class Multimodal extends javax.swing.JFrame {
             handleTimeOut(e);
         });
         stroke = new Stroke();
-
-        try (FileInputStream fis = new FileInputStream("geste"); ObjectInputStream ois = new ObjectInputStream(fis)) {
-
-            gestures = (HashMap< String, ArrayList<Point2D.Double>>) ois.readObject();
-
-        }
+        objectType = "O";
+        shapesByColor = new HashMap<>();
+        shapes = new ArrayList<>();
         /**
          * Declare Ivy bus, start it and bind messages to event handlers
          */
@@ -467,7 +584,7 @@ public class Multimodal extends javax.swing.JFrame {
         try {
             bus.start("127.255.255.255:2010");
         } catch (IvyException ex) {
-            Logger.getLogger(IvyMessages.class
+            Logger.getLogger(Geste.class
                     .getName()).log(Level.SEVERE, null, ex);
         }
 
@@ -475,41 +592,15 @@ public class Multimodal extends javax.swing.JFrame {
          * Palette events such as Mouse Drag and Click
          */
         try {
-            bus.bindMsg("Palette:MousePressed x=(.*) y=(.*)", (IvyClient ic, String[] strings) -> {
-                int x = Integer.parseInt(strings[0]);
-                int y = Integer.parseInt(strings[1]);
-                handleMouseDown(x, y);
+            bus.bindMsg("Geste:(.*)", (IvyClient ic, String[] strings) -> {
+                String geste = strings[0];
+                handleGesture(geste);
             });
 
         } catch (IvyException ex) {
-            Logger.getLogger(IvyMessages.class
+            Logger.getLogger(Geste.class
                     .getName()).log(Level.SEVERE, null, ex);
         }
-
-        try {
-            bus.bindMsg("Palette:MouseReleased x=(.*) y=(.*)", (IvyClient ic, String[] strings) -> {
-                int x = Integer.parseInt(strings[0]);
-                int y = Integer.parseInt(strings[1]);
-                handleMouseUp(x, y);
-            });
-
-        } catch (IvyException ex) {
-            Logger.getLogger(IvyMessages.class
-                    .getName()).log(Level.SEVERE, null, ex);
-        }
-
-        try {
-            bus.bindMsg("Palette:MouseDragged x=(.*) y=(.*)", (IvyClient ic, String[] strings) -> {
-                int x = Integer.parseInt(strings[0]);
-                int y = Integer.parseInt(strings[1]);
-                handleMouseDragged(x, y);
-            });
-
-        } catch (IvyException ex) {
-            Logger.getLogger(IvyMessages.class
-                    .getName()).log(Level.SEVERE, null, ex);
-        }
-
         try {
             bus.bindMsg("Palette:MouseClicked x=(.*) y=(.*)", (IvyClient ic, String[] strings) -> {
                 int x = Integer.parseInt(strings[0]);
@@ -518,33 +609,86 @@ public class Multimodal extends javax.swing.JFrame {
             });
 
         } catch (IvyException ex) {
-            Logger.getLogger(IvyMessages.class
+            Logger.getLogger(Geste.class
                     .getName()).log(Level.SEVERE, null, ex);
         }
 
         try {
             bus.bindMsg("Palette:Info nom=(.*) x=(.*) y=(.*) longueur=(.*) hauteur=(.*) couleurFond=(.*) couleurContour=(.*)",
                     (IvyClient ic, String[] strings) -> {
-                        String couleur = strings[5];
-                        handleCouleur(couleur);
+
+                        String keyColor = strings[5];
+                        String shapeName = strings[0];
+                        if (objectType.equals("O")) {
+                            if (shapesByColor.containsKey(keyColor)) {
+                                shapesByColor.get(keyColor).add(shapeName);
+                            } else {
+                                ArrayList<String> shapes = new ArrayList<>();
+                                shapes.add(shapeName);
+                                shapesByColor.put(keyColor, shapes);
+
+                            }
+                        } else {
+                            if (shapeName.startsWith(objectType)) {
+
+                                if (shapesByColor.containsKey(keyColor)) {
+                                    shapesByColor.get(keyColor).add(shapeName);
+                                } else {
+                                    ArrayList<String> shapes = new ArrayList<>();
+                                    shapes.add(shapeName);
+                                    shapesByColor.put(keyColor, shapes);
+
+                                }
+                            }
+                        }
+                        receivedResponse++;
+                        if (receivedResponse == shapes.size()) {
+                            switch (applicationState) {
+                                case InfoCréer:
+                                    timer.restart();
+                                    handleCouleur(shapesByColor.entrySet().iterator().next().getKey());
+                                    break;
+                                case InfoSupp:
+                                    applicationState = ApplicationState.CouleurSupp;
+                                    timer.restart();
+                                    break;
+                                case InfoDéplacer:
+                                    applicationState = ApplicationState.CouleurDéplacer;
+                                    timer.restart();
+                                    break;
+                            }
+                            receivedResponse = 0;
+                            shapes.clear();
+                        }
                     });
 
         } catch (IvyException ex) {
-            Logger.getLogger(IvyMessages.class
+            Logger.getLogger(Geste.class
                     .getName()).log(Level.SEVERE, null, ex);
+        }
+
+        try {
+            bus.bindMsg("Palette:FinTesterPoint", (IvyClient ic, String[] strings) -> {
+                shapes.forEach((nom) -> {
+                    try {
+                        bus.sendMsg("Palette:DemanderInfo nom=" + nom);
+                    } catch (IvyException ex) {
+                        Logger.getLogger(Multimodal.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                });
+
+            });
+        } catch (IvyException ex) {
+            Logger.getLogger(Multimodal.class.getName()).log(Level.SEVERE, null, ex);
         }
         try {
             bus.bindMsg("Palette:ResultatTesterPoint x=(.*) y=(.*) nom=(.*)", (IvyClient ic, String[] strings) -> {
                 String nom = strings[2];
-                try {
-                    bus.sendMsg("Palette:DemanderInfo nom=" + nom);
-                } catch (IvyException ex) {
-                    Logger.getLogger(Multimodal.class
-                            .getName()).log(Level.SEVERE, null, ex);
-                }
+                shapes.add(nom);
+
             });
         } catch (IvyException ex) {
-            Logger.getLogger(IvyMessages.class
+            Logger.getLogger(Geste.class
                     .getName()).log(Level.SEVERE, null, ex);
         }
         /**
@@ -575,14 +719,14 @@ public class Multimodal extends javax.swing.JFrame {
                             handleCouleur(keyValues[1]);
                             break;
                         case "Objet":
-                            // a faire après 
+                            handleObject(keyValues[1]);
                             break;
                     }
                 }
             });
 
         } catch (IvyException ex) {
-            Logger.getLogger(IvyMessages.class
+            Logger.getLogger(Geste.class
                     .getName()).log(Level.SEVERE, null, ex);
         }
 
