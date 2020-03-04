@@ -16,8 +16,9 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.Timer;
@@ -45,17 +46,15 @@ public class Multimodal extends javax.swing.JFrame {
                 break;
             case PositionCréer:
                 applicationState = ApplicationState.Créer;
-
-                ((CreateCommand) command).setPosition(new Point(x, y));
+                clickedPoint = new Point(x, y);
+                ((CreateCommand) command).setPosition(clickedPoint);
                 timer.restart();
                 break;
-            case ClickCréer:
-                /**
-                 * Ne rien faire
-                 */
-                break;
+
             case CouleurCréer:
                 applicationState = ApplicationState.InfoCréer;
+
+                clickedPoint = new Point(x, y);
                  {
                     try {
                         askInfo(x, y);
@@ -63,7 +62,7 @@ public class Multimodal extends javax.swing.JFrame {
                         Logger.getLogger(Multimodal.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
-                timer.restart();
+                timer.stop();
                 break;
             case Supprimer:
                 applicationState = ApplicationState.ClickSupp;
@@ -81,7 +80,7 @@ public class Multimodal extends javax.swing.JFrame {
                         Logger.getLogger(Multimodal.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
-                timer.restart();
+                timer.stop();
                 break;
             case Déplacer:
                 applicationState = ApplicationState.ClickDéplacer;
@@ -99,7 +98,7 @@ public class Multimodal extends javax.swing.JFrame {
                         Logger.getLogger(Multimodal.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
-                timer.restart();
+                timer.stop();
                 break;
             case PositionDéplacer:
                 applicationState = ApplicationState.Déplacer;
@@ -108,14 +107,24 @@ public class Multimodal extends javax.swing.JFrame {
                 timer.restart();
                 break;
             case CouleurDéplacer:
-                applicationState = ApplicationState.ClickDéplacer;
+
                 clickedPoint = new Point(x, y);
+                ArrayList<String> allShapesToMove = new ArrayList<>();
+                shapesByColor.values().forEach((list) -> allShapesToMove.addAll(list));
+                System.out.println("shapes " + allShapesToMove);
+                ((MoveCommand) command).setShapes(allShapesToMove);
+                applicationState = ApplicationState.ClickDéplacer;
+
                 timer.restart();
                 break;
             case CouleurSupp:
                 applicationState = ApplicationState.ClickSupp;
                 clickedPoint = new Point(x, y);
                 timer.restart();
+                break;
+            case InfoCréer:
+                applicationState = ApplicationState.InfoCréer;
+                clickedPoint = new Point(x, y);
                 break;
 
         }
@@ -133,7 +142,6 @@ public class Multimodal extends javax.swing.JFrame {
                 /**
                  * TODO Change position
                  */
-
                 applicationState = ApplicationState.PositionCréer;
                 timer.restart();
                 break;
@@ -147,14 +155,19 @@ public class Multimodal extends javax.swing.JFrame {
                 timer.restart();
                 break;
             case ClickDéplacer:
+                System.out.println("je chnage position " + clickedPoint);
                 applicationState = ApplicationState.Déplacer;
                 ((MoveCommand) command).setPosition(clickedPoint);
                 timer.restart();
                 break;
             case CouleurDéplacer:
                 applicationState = ApplicationState.PositionDéplacer;
-                timer.restart();
-                break;   
+                ArrayList<String> allShapesToMove = new ArrayList<>();
+                shapesByColor.values().forEach((list) -> allShapesToMove.addAll(list));
+                System.out.println("shapes " + allShapesToMove);
+                ((MoveCommand) command).setShapes(allShapesToMove);
+                timer.start();
+                break;
             default:
 
                 /**
@@ -177,6 +190,7 @@ public class Multimodal extends javax.swing.JFrame {
                     applicationState = ApplicationState.CouleurCréer;
                 } else {
                     applicationState = ApplicationState.Créer;
+                    System.out.println("j'ai reçu une couleur " + couleur);
                     ((CreateCommand) command).setColor(couleur);
                 }
                 timer.restart();
@@ -189,14 +203,14 @@ public class Multimodal extends javax.swing.JFrame {
                     } catch (IvyException ex) {
                         Logger.getLogger(Multimodal.class.getName()).log(Level.SEVERE, null, ex);
                     }
+                } else {
+                    applicationState = ApplicationState.ClickCréer;
+                    System.out.println("j'ai reçu une couleur après clic " + couleur);
+                    ((CreateCommand) command).setColor(couleur);
                 }
-                timer.restart();
+                timer.stop();
                 break;
-            case CouleurCréer:
-                /**
-                 * Ne rien faire
-                 */
-                break;
+
             case CouleurSupp:
                 if (!couleur.equals("de cette couleur")) {
                     applicationState = ApplicationState.Supprimer;
@@ -206,9 +220,8 @@ public class Multimodal extends javax.swing.JFrame {
                 break;
             case InfoCréer:
                 applicationState = ApplicationState.Créer;
-
                 ((CreateCommand) command).setColor(couleur);
-                timer.restart();
+                timer.start();
                 break;
             case CouleurDéplacer:
                 if (!couleur.equals("de cette couleur")) {
@@ -216,6 +229,7 @@ public class Multimodal extends javax.swing.JFrame {
                     ((MoveCommand) command).setShapes(shapesByColor.get(mapColor(couleur)));
                     timer.restart();
                 }
+
                 break;
         }
     }
@@ -241,7 +255,6 @@ public class Multimodal extends javax.swing.JFrame {
                                 + " y="
                                 + cc.getPosition().y
                                 + " longueur=100 hauteur=50 couleurFond="
-                                + color + " couleurContour="
                                 + color);
                     } catch (IvyException ex) {
                         Logger.getLogger(Multimodal.class.getName()).log(Level.SEVERE, null, ex);
@@ -254,7 +267,7 @@ public class Multimodal extends javax.swing.JFrame {
 
                 if (command.isWellFormated()) {
                     DeleteCommand dc = ((DeleteCommand) command);
-
+                    System.out.println("shapes a supprimer" + dc.getShapes());
                     dc.getShapes().forEach((shape) -> {
                         try {
                             bus.sendMsg("Palette:SupprimerObjet nom=" + shape);
@@ -265,22 +278,6 @@ public class Multimodal extends javax.swing.JFrame {
                 }
 
                 timer.stop();
-                break;
-            case ClickCréer:
-            case CouleurCréer:
-            case InfoCréer:
-                applicationState = ApplicationState.Créer;
-                timer.restart();
-                break;
-            case ClickSupp:
-            case InfoSupp:
-            case CouleurSupp:
-           
-                applicationState = ApplicationState.Supprimer;
-                ArrayList<String> allShapes = new ArrayList<>();
-                shapesByColor.values().forEach((list) -> allShapes.addAll(list));
-                ((DeleteCommand) command).setShapes(allShapes);
-                timer.restart();
                 break;
             case Déplacer:
                 applicationState = ApplicationState.Init;
@@ -298,15 +295,32 @@ public class Multimodal extends javax.swing.JFrame {
 
                 timer.stop();
                 break;
-            case ClickDéplacer:
-            case InfoDéplacer:
-            case CouleurDéplacer:
-            case PositionDéplacer:
+            case ClickCréer:
+            case CouleurCréer:
+                applicationState = ApplicationState.Créer;
+                timer.restart();
+                break;
+
+            case ClickSupp:
+            case CouleurSupp:
+                applicationState = ApplicationState.Supprimer;
+                ArrayList<String> allShapes = new ArrayList<>();
+                shapesByColor.values().forEach((list) -> allShapes.addAll(list));
+                ((DeleteCommand) command).setShapes(allShapes);
+                timer.restart();
+                break;
+                  case CouleurDéplacer:
                 applicationState = ApplicationState.Déplacer;
                 ArrayList<String> allShapesToMove = new ArrayList<>();
                 shapesByColor.values().forEach((list) -> allShapesToMove.addAll(list));
                 System.out.println("shapes " + allShapesToMove);
                 ((MoveCommand) command).setShapes(allShapesToMove);
+                timer.restart();
+                break;
+            case ClickDéplacer:
+     
+            case PositionDéplacer:
+                applicationState = ApplicationState.Déplacer;             
                 timer.restart();
                 break;
 
@@ -415,7 +429,7 @@ public class Multimodal extends javax.swing.JFrame {
                     }
                 }
 
-                timer.restart();
+                timer.stop();
                 break;
             case Déplacer:
                 applicationState = ApplicationState.ObjetDéplacer;
@@ -435,7 +449,7 @@ public class Multimodal extends javax.swing.JFrame {
                     }
                 }
 
-                timer.restart();
+                timer.stop();
                 break;
         }
     }
@@ -485,7 +499,7 @@ public class Multimodal extends javax.swing.JFrame {
 
     private Timer timer;
     private Stroke stroke;
-    private HashMap<String, ArrayList<String>> shapesByColor;
+    private NavigableMap<String, ArrayList<String>> shapesByColor;
     private List<String> shapes;
 
     /**
@@ -574,8 +588,9 @@ public class Multimodal extends javax.swing.JFrame {
         });
         stroke = new Stroke();
         objectType = "O";
-        shapesByColor = new HashMap<>();
+        shapesByColor = new TreeMap<>();
         shapes = new ArrayList<>();
+        clickedPoint = new Point(0, 0);
         /**
          * Declare Ivy bus, start it and bind messages to event handlers
          */
@@ -628,16 +643,14 @@ public class Multimodal extends javax.swing.JFrame {
                                 shapesByColor.put(keyColor, shapes);
 
                             }
-                        } else {
+                        } else if (objectType.equals("R") || objectType.equals("E")) {
                             if (shapeName.startsWith(objectType)) {
-
                                 if (shapesByColor.containsKey(keyColor)) {
                                     shapesByColor.get(keyColor).add(shapeName);
                                 } else {
                                     ArrayList<String> shapes = new ArrayList<>();
                                     shapes.add(shapeName);
                                     shapesByColor.put(keyColor, shapes);
-
                                 }
                             }
                         }
@@ -646,15 +659,15 @@ public class Multimodal extends javax.swing.JFrame {
                             switch (applicationState) {
                                 case InfoCréer:
                                     timer.restart();
-                                    handleCouleur(shapesByColor.entrySet().iterator().next().getKey());
+                                    handleCouleur(shapesByColor.lastEntry().getKey());
                                     break;
                                 case InfoSupp:
                                     applicationState = ApplicationState.CouleurSupp;
-                                    timer.restart();
+                                    timer.start();
                                     break;
                                 case InfoDéplacer:
                                     applicationState = ApplicationState.CouleurDéplacer;
-                                    timer.restart();
+                                    timer.start();
                                     break;
                             }
                             receivedResponse = 0;

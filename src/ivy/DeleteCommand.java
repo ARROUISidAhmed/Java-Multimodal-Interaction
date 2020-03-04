@@ -32,7 +32,7 @@ public class DeleteCommand implements Command {
 
     @Override
     public boolean isWellFormated() {
-        return !(this.shapes.isEmpty() || Objects.isNull(shapes));
+        return !( Objects.isNull(shapes) || this.shapes.isEmpty() );
     }
 
 }

@@ -41,7 +41,6 @@ public class MoveCommand implements Command {
 
     @Override
     public boolean isWellFormated() {
-        System.out.println("fomated "+!(this.shapes.isEmpty() || Objects.isNull(shapes) || Objects.isNull(position)));
-        return !(this.shapes.isEmpty() || Objects.isNull(shapes) || Objects.isNull(position));
+        return !(Objects.isNull(shapes) || this.shapes.isEmpty() || Objects.isNull(position));
     }
 }
